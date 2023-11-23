@@ -4,8 +4,9 @@ buildscript {
         jcenter()
         google()
         maven {
-           url 'https://maven.fabric.io/public'
+            url 'https://maven.fabric.io/public'
         }
+
 
     }
     dependencies {
@@ -19,9 +20,13 @@ allprojects {
     repositories {
         jcenter()
         google()
-        maven {
-           url 'https://maven.google.com/'
-       }
+        maven { url 'https://maven.google.com/' }
+        maven { url "https://repo.eclipse.org/content/repositories/paho-releases/" }
+    }
+
+    dependencies {
+
+
 
     }
 }
