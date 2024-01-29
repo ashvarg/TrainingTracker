@@ -133,7 +133,7 @@ public class MainActivityWithNavigation
         StartOrResumeInterface {
 
 
-    private static final String BROKER_URL = "tcp://192.168.0.229:1883";
+    private static final String BROKER_URL = "tcp://192.168.117.45:1883";
     private MqttHandler mqttHandler;
     private static final String CLIENT_ID = "client_id";
 
@@ -946,7 +946,7 @@ public class MainActivityWithNavigation
         if (tv != null) {
             tv.setText(R.string.resume_workout);
         }
-        subscribeToTopic("testTopic");
+        subscribeToTopic("test1");
     }
 
     private void publishMessage(String topic, String message){

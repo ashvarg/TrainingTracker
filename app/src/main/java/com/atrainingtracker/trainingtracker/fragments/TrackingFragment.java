@@ -53,6 +53,7 @@ import com.atrainingtracker.trainingtracker.activities.ConfigTrackingViewsActivi
 import com.atrainingtracker.trainingtracker.activities.ConfigViewsActivity;
 import com.atrainingtracker.trainingtracker.MyHelper;
 import com.atrainingtracker.trainingtracker.TrainingApplication;
+import com.atrainingtracker.trainingtracker.activities.MqttHandler;
 import com.atrainingtracker.trainingtracker.database.TrackingViewsDatabaseManager;
 import com.atrainingtracker.trainingtracker.dialogs.EditFieldDialog;
 import com.atrainingtracker.trainingtracker.fragments.mapFragments.TrackOnMapTrackingAndFollowingFragment;
@@ -66,6 +67,9 @@ import static com.atrainingtracker.trainingtracker.dialogs.EditFieldDialog.TRACK
 public class TrackingFragment extends BaseTrackingFragment {
     public static final String TAG = "TrackingFragment";
     public static final String VIEW_ID = "VIEW_ID";
+    private static final String BROKER_URL = "tcp://192.168.117.45:1883";
+    private MqttHandler mqttHandler;
+    private static final String CLIENT_ID = "sensors_tracking_fragment";
     private static final boolean DEBUG = TrainingApplication.DEBUG && false;
     private static final String MODE = "MODE";
     private static final String ACTIVITY_TYPE = "ACTIVITY_TYPE";
@@ -178,6 +182,7 @@ public class TrackingFragment extends BaseTrackingFragment {
         if (mode != null) {
             mMode = Mode.valueOf(mode);
         }
+
     }
 
     @Override
@@ -223,6 +228,8 @@ public class TrackingFragment extends BaseTrackingFragment {
             getChildFragmentManager().beginTransaction().add(mMapContainer.getId(), mTrackOnMapTrackingFragment).commit();
         }
 
+
+
         return view;
     }
 
@@ -233,12 +240,15 @@ public class TrackingFragment extends BaseTrackingFragment {
 
         getActivity().registerReceiver(mNewTimeEventReceiver, mNewTimeEventFilter);
         getActivity().registerReceiver(mTrackingViewChangedReceiver, mTrackingViewChangedFilter);
+
     }
 
     @Override
     public void onStart () {
         super.onStart();
         if (DEBUG) Log.i(TAG, "onStart " + mViewId);
+        mqttHandler = new MqttHandler();
+        mqttHandler.connect(BROKER_URL, CLIENT_ID);
     }
 
     @Override
@@ -258,6 +268,7 @@ public class TrackingFragment extends BaseTrackingFragment {
         if (TrackingViewsDatabaseManager.day(mViewId))   { forceDay();   }
         if (TrackingViewsDatabaseManager.night(mViewId)) { forceNight(); }
         if (TrackingViewsDatabaseManager.systemSettings(mViewId)) { followSystem(); }
+        mqttHandler.connect(BROKER_URL, CLIENT_ID);
     }
 
 
@@ -274,12 +285,16 @@ public class TrackingFragment extends BaseTrackingFragment {
         //     getActivity().unregisterReceiver(mTrackingViewChangedReceiver);
         // } catch (Exception e) {
         // }
+        mqttHandler.disconnect();
     }
 
     @Override
     public void onStop () {
         super.onStop();
         if (DEBUG) Log.i(TAG, "onStop " + mViewId);
+        if (mqttHandler != null) {
+            mqttHandler.disconnect(); // Implement a method to disconnect from MQTT broker
+        }
     }
 
     @Override
@@ -289,18 +304,24 @@ public class TrackingFragment extends BaseTrackingFragment {
 
         getActivity().unregisterReceiver(mNewTimeEventReceiver);
         getActivity().unregisterReceiver(mTrackingViewChangedReceiver);
+
     }
 
     @Override
     public void onDestroy () {
         super.onDestroy();
         if (DEBUG) Log.i(TAG, "onDestroy " + mViewId);
+        if (mqttHandler != null) {
+            mqttHandler.disconnect(); // Implement a method to disconnect from MQTT broker
+        }
+
     }
 
     @Override
     public void onDetach () {
         super.onDetach();
         if (DEBUG) Log.i(TAG, "onDetach " + mViewId);
+
     }
 
     /**
@@ -328,7 +349,7 @@ public class TrackingFragment extends BaseTrackingFragment {
                 Intent intent = new Intent(getActivity(), ConfigTrackingViewsActivity.class);
                 intent.putExtras(bundle);
                 startActivity(intent);
-
+                mqttHandler.disconnect();
                 return true;
         }
 
@@ -468,6 +489,14 @@ public class TrackingFragment extends BaseTrackingFragment {
                 if (TrainingApplication.showUnits() && getActivity() != null) {
                     String units = getString(MyHelper.getUnitsId(tvSensorType.sensorType));
                     tvSensorType.textView.setText(getString(R.string.value_unit_string_string, value, units));
+                    if (mqttHandler != null){
+                        mqttHandler.publish("sensors", "sensor: " + tvSensorType.sensorType + " value: " + getString(R.string.value_unit_string_string, value, units));
+                    }
+                    else {
+                        // Handle the situation where mqttHandler is null
+                        Log.e(TAG, "mqttHandler is null");
+                    }
+
                 } else {
                     tvSensorType.textView.setText(value);
                 }
