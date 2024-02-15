@@ -133,9 +133,7 @@ public class MainActivityWithNavigation
         StartOrResumeInterface {
 
 
-    private static final String BROKER_URL = "tcp://192.168.117.45:1883";
     private MqttHandler mqttHandler;
-    private static final String CLIENT_ID = "client_id";
 
     public static final String SELECTED_FRAGMENT_ID = "SELECTED_FRAGMENT_ID";
     public static final String SELECTED_FRAGMENT = "SELECTED_FRAGMENT";
@@ -932,10 +930,7 @@ public class MainActivityWithNavigation
         if (tv != null) {
             tv.setText(R.string.start_new_workout);
         }
-        mqttHandler = new MqttHandler();
-        mqttHandler.connect(BROKER_URL, CLIENT_ID);
         Log.d("MQTT CONNECT", "mqtt handler has been created");
-        publishMessage("house/bulb", "testMessage2" );
     }
 
     @Override
@@ -946,20 +941,10 @@ public class MainActivityWithNavigation
         if (tv != null) {
             tv.setText(R.string.resume_workout);
         }
-        subscribeToTopic("test1");
+
     }
 
-    private void publishMessage(String topic, String message){
-        Toast.makeText(this, "Publishing message " + message, Toast.LENGTH_SHORT).show();
-        mqttHandler.publish(topic, message);
-        Log.d("PUBLISH", "string has been published");
-    }
 
-    private void subscribeToTopic(String topic){
-        Toast.makeText(this, "Subscribing to topic " + topic, Toast.LENGTH_SHORT).show();
-        mqttHandler.subscribe(topic);
-        Log.d("SUBSCRIBE", "string has been published");
-    }
 
     public enum SelectedFragment {START_OR_TRACKING, WORKOUT_LIST}
 

@@ -62,12 +62,13 @@ import com.atrainingtracker.trainingtracker.fragments.mapFragments.TrackOnMapTra
 import java.util.HashMap;
 import java.util.TreeMap;
 
+
 import static com.atrainingtracker.trainingtracker.dialogs.EditFieldDialog.TRACKING_VIEW_CHANGED_INTENT;
 
 public class TrackingFragment extends BaseTrackingFragment {
     public static final String TAG = "TrackingFragment";
     public static final String VIEW_ID = "VIEW_ID";
-    private static final String BROKER_URL = "tcp://192.168.117.45:1883";
+    private static final String BROKER_URL = "tcp://mqtt.monashhumanpower.org:1883";
     private MqttHandler mqttHandler;
     private static final String CLIENT_ID = "sensors_tracking_fragment";
     private static final boolean DEBUG = TrainingApplication.DEBUG && false;
@@ -248,6 +249,8 @@ public class TrackingFragment extends BaseTrackingFragment {
         super.onStart();
         if (DEBUG) Log.i(TAG, "onStart " + mViewId);
         mqttHandler = new MqttHandler();
+
+        // This could potentially crash the app if broker url is incorrect
         mqttHandler.connect(BROKER_URL, CLIENT_ID);
     }
 
@@ -490,12 +493,15 @@ public class TrackingFragment extends BaseTrackingFragment {
                     String units = getString(MyHelper.getUnitsId(tvSensorType.sensorType));
                     tvSensorType.textView.setText(getString(R.string.value_unit_string_string, value, units));
                     if (mqttHandler != null){
-                        mqttHandler.publish("sensors", "sensor: " + tvSensorType.sensorType + " value: " + getString(R.string.value_unit_string_string, value, units));
+                        mqttHandler.publishAsync("sensors", "sensor: " + tvSensorType.sensorType + " value: " + getString(R.string.value_unit_string_string, value, units));
+
                     }
                     else {
                         // Handle the situation where mqttHandler is null
                         Log.e(TAG, "mqttHandler is null");
                     }
+
+
 
                 } else {
                     tvSensorType.textView.setText(value);
@@ -523,6 +529,7 @@ public class TrackingFragment extends BaseTrackingFragment {
             return false;
         }
     }
+
 
 
     public enum Mode {TRACKING, PREVIEW}
