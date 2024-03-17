@@ -95,6 +95,12 @@ public class MqttHandler {
         }.execute();
     }
 
+    public boolean nullClient(){
+        if (client == null){
+            return true;
+        }
+        return false;
+    }
 
     public void subscribe(String topic) {
         try {
