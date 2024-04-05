@@ -132,9 +132,6 @@ public class MainActivityWithNavigation
         StarredSegmentsListFragment.StartSegmentDetailsActivityInterface,
         StartOrResumeInterface {
 
-
-    private MqttHandler mqttHandler;
-
     public static final String SELECTED_FRAGMENT_ID = "SELECTED_FRAGMENT_ID";
     public static final String SELECTED_FRAGMENT = "SELECTED_FRAGMENT";
     private static final String TAG = "com.atrainingtracker.trainingtracker.MainActivityWithNavigation";
@@ -495,10 +492,8 @@ public class MainActivityWithNavigation
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        if (DEBUG) Log.d(TAG, "onDestroy");
-        mqttHandler.disconnect();
 
+        super.onDestroy();
         disconnectFromBANALService();
     }
 

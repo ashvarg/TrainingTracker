@@ -296,7 +296,7 @@ public class TrackingFragment extends BaseTrackingFragment {
         super.onStop();
         if (DEBUG) Log.i(TAG, "onStop " + mViewId);
         if (mqttHandler != null) {
-            mqttHandler.disconnect(); // Implement a method to disconnect from MQTT broker
+            mqttHandler.disconnectAsync(); // Implement a method to disconnect from MQTT broker
         }
     }
 
@@ -315,7 +315,7 @@ public class TrackingFragment extends BaseTrackingFragment {
         super.onDestroy();
         if (DEBUG) Log.i(TAG, "onDestroy " + mViewId);
         if (mqttHandler != null) {
-            mqttHandler.disconnect(); // Implement a method to disconnect from MQTT broker
+            mqttHandler.disconnectAsync(); // Implement a method to disconnect from MQTT broker
         }
 
     }
@@ -352,7 +352,7 @@ public class TrackingFragment extends BaseTrackingFragment {
                 Intent intent = new Intent(getActivity(), ConfigTrackingViewsActivity.class);
                 intent.putExtras(bundle);
                 startActivity(intent);
-                mqttHandler.disconnect();
+                mqttHandler.disconnectAsync();
                 return true;
         }
 
