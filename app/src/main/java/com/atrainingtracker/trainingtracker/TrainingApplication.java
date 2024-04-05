@@ -46,6 +46,7 @@ import com.atrainingtracker.banalservice.sensor.formater.DistanceFormatter;
 import com.atrainingtracker.banalservice.sensor.formater.TimeFormatter;
 import com.atrainingtracker.banalservice.database.DevicesDatabaseManager;
 import com.atrainingtracker.banalservice.database.SportTypeDatabaseManager;
+import com.atrainingtracker.trainingtracker.activities.LapTimer;
 import com.atrainingtracker.trainingtracker.activities.MainActivityWithNavigation;
 import com.atrainingtracker.trainingtracker.activities.WorkoutDetailsActivity;
 import com.atrainingtracker.trainingtracker.exporter.FileFormat;
@@ -238,6 +239,8 @@ public class TrainingApplication extends Application {
     // }
     private TimeFormatter mTimeFormatter = new TimeFormatter();
     private String mDeviceCurrentlySearchingFor = null;
+
+    public LapTimer lapTimer;
     /***********************************************************************************************/
 
     protected BroadcastReceiver mStartTrackingReceiver = new BroadcastReceiver() {
@@ -1115,6 +1118,11 @@ public class TrainingApplication extends Application {
 
         cTrackingMode = TrackingMode.TRACKING;
         notifyTrackingStateChanged();
+
+        lapTimer = new LapTimer(this);
+        Log.i("LAP", "Lap Timer created");
+        lapTimer.start();
+        Log.i("LAP", "Lap Timer started");
     }
 
     protected void pauseTracking() {
@@ -1124,6 +1132,8 @@ public class TrainingApplication extends Application {
 
         cTrackingMode = TrackingMode.PAUSED;
         notifyTrackingStateChanged();
+
+        lapTimer.pause();
     }
 
     protected void resumeFromPaused() {
@@ -1137,6 +1147,8 @@ public class TrainingApplication extends Application {
 
         cTrackingMode = TrackingMode.TRACKING;
         notifyTrackingStateChanged();
+
+        lapTimer.resume();
     }
 
     protected void stopTracking() {
@@ -1146,6 +1158,8 @@ public class TrainingApplication extends Application {
 
         cTrackingMode = TrackingMode.READY;
         notifyTrackingStateChanged();
+
+        lapTimer.stop();
     }
 
     protected void trackingStopped() {

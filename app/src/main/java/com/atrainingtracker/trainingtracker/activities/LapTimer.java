@@ -15,15 +15,20 @@ import org.json.JSONObject;
 public class LapTimer implements LocationListener {
 
     private MqttHandler mqttHandler;
-    private static final String BROKER_URL = "";
-    private static final String CLIENT_ID = "";
+    private static final String BROKER_URL = "tcp://mqtt.monashhumanpower.org:1883";
+    private static final String CLIENT_ID = "lap_timer";
 
     private final Context context;
     private LocationManager locationManager;
     private static final int SAMPLING_TIME = 500;
     private static final int MIN_DISTANCE = 0;
     private static final int MAX_DISTANCE = 10;
+    private static final int LAP_DELAY = 10;
     private Location startLocation, lastLocation;
+
+    private boolean is_paused = false;
+    private float pauseTime = 0;
+    private long pauseStart = 0;
 
 
     private long lastLapTime = -1;
@@ -34,8 +39,7 @@ public class LapTimer implements LocationListener {
 
     public static final String LAP_DATA_TOPIC = "trike/lap/data";
     public static final String LAP_TRIGGER_TOPIC = "trike/lap/trigger";
-    public static final int MS_TO_S = 1000;
-    public static final int M_TO_KM = 1000;
+
 
     public LapTimer(Context context) {
         this.context = context;
@@ -43,33 +47,40 @@ public class LapTimer implements LocationListener {
 
 
     public void lap(){
+        Log.i("LAP", "Lap "+ lapNumber + " started ");
         try {
             mqttHandler.publish(LAP_TRIGGER_TOPIC, "lap");
             if (lastLapTime != -1) // If a lap has been completed
             {
                 // Calculate lap information
-                long lapTime =  System.currentTimeMillis()*MS_TO_S - lastLapTime;
+                long lapTimeLong = (System.currentTimeMillis() - lastLapTime);
+                float lapTimeFloat = (float) lapTimeLong;
+                float lapTime =  lapTimeFloat/1000 - pauseTime;
                 float lapDistance = totalDistance - lastLapDistance;
                 float lapSpeed = lapDistance/lapTime;
 
                 // Put information in Json Object
                 JSONObject lapData = new JSONObject();
-                lapData.put("lapNumber", lapNumber);
+                lapData.put("lapNumber", lapNumber - 1 );
                 lapData.put("time", lapTime);
                 lapData.put("distance", lapDistance);
                 lapData.put("speed", lapSpeed);
 
                 // Publish to MQTT
                 mqttHandler.publish(LAP_DATA_TOPIC, lapData.toString());
+                Log.i("LAP", lapData.toString());
 
                 // Update last_lap information
                 lastLapDistance = lapDistance;
-                lastLapTime = System.currentTimeMillis()*MS_TO_S;
-                lapNumber = lapNumber +1;
+                lastLapTime = System.currentTimeMillis();
+                lapNumber = lapNumber + 1;
+                Log.i("LAP", Float.toString(lapTime));
+                pauseTime = 0;
 
             }
             else { // First lap started
-                lastLapTime = System.currentTimeMillis()*MS_TO_S;
+                lastLapTime = System.currentTimeMillis();
+                lapNumber = lapNumber + 1;
             }
         } catch (JSONException e){
             e.printStackTrace();
@@ -83,6 +94,7 @@ public class LapTimer implements LocationListener {
         // Create MQTT client and connect to broker
         mqttHandler = new MqttHandler();
         mqttHandler.connect(BROKER_URL, CLIENT_ID);
+        Log.i("LAP", "mqtt connected");
 
         // Create reference to GPS
         locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -91,27 +103,55 @@ public class LapTimer implements LocationListener {
         lap();
     }
 
+    public void stop()
+    {
+        // Disconnect to MQTT
+        mqttHandler.disconnect();
+        Log.i("LAP", "mqtt disconnected");
+
+        // Remove location callback
+        locationManager.removeUpdates(this);
+
+    }
+
+    public void pause()
+    {
+        is_paused = true;
+        pauseStart = System.currentTimeMillis();
+    }
+
+    public void resume()
+    {
+        is_paused = false;
+        long pauseTimeLong = System.currentTimeMillis() - pauseStart;
+        pauseTime = pauseTime + ((float) pauseTimeLong)/1000;
+        Log.i("LAP", "Paused for " + pauseTime);
+    }
+
 
     @Override
     public void onLocationChanged(Location location) {
-        if (location != null)
+        if (!is_paused)
         {
-            if (startLocation == null) // Set start location
-            {
-                startLocation = location;
-            }
-            else
-            {
-                totalDistance = totalDistance + location.distanceTo(lastLocation);
-
-                if (haversineDistance(location.getLatitude(), location.getLongitude(),startLocation.getLatitude(), startLocation.getLongitude()) < MAX_DISTANCE)
+            long lapTime = (System.currentTimeMillis() - lastLapTime) / 1000;
+            if (location != null) {
+                if (startLocation == null) // Set start location
                 {
-                    lap();
-                }
-            }
+                    startLocation = location;
+                } else {
+                    totalDistance = totalDistance + location.distanceTo(lastLocation);
 
-            //Update last location
-            lastLocation = location;
+                    Log.i("LAP", "Location update, distance from start is: " + location.distanceTo(startLocation));
+                    if (location.distanceTo(startLocation) < MAX_DISTANCE) {
+                        if (lapTime > LAP_DELAY) {
+                            lap();
+                        }
+                    }
+                }
+
+                //Update last location
+                lastLocation = location;
+            }
         }
     }
 
@@ -130,18 +170,4 @@ public class LapTimer implements LocationListener {
         Log.d("PROVIDER_DISABLED", "Provider has been disabled");
     }
 
-    public double haversineDistance(double lat1, double long1, double lat2, double long2)
-    {
-        double earthRadius = 6371;
-        double latChangeRad = Math.toRadians(lat2 - lat1);
-        double lonChangeRad = Math.toRadians(long2 - long1);
-
-        double a = Math.pow(Math.sin(latChangeRad / 2), 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.pow(Math.sin(lonChangeRad / 2), 2);
-        double angularDistance = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        double distance = earthRadius * angularDistance; // In km
-        return distance/M_TO_KM;
-    }
 }
