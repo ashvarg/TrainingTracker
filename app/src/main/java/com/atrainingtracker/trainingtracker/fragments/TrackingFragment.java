@@ -18,16 +18,14 @@
 
 package com.atrainingtracker.trainingtracker.fragments;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Build;
 import android.os.Bundle;
 
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.fragment.app.Fragment;
-import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -58,6 +56,7 @@ import com.atrainingtracker.trainingtracker.database.TrackingViewsDatabaseManage
 import com.atrainingtracker.trainingtracker.dialogs.EditFieldDialog;
 import com.atrainingtracker.trainingtracker.fragments.mapFragments.TrackOnMapTrackingAndFollowingFragment;
 import com.atrainingtracker.trainingtracker.fragments.mapFragments.TrackOnMapTrackingFragment;
+import com.atrainingtracker.trainingtracker.fragments.preferences.SensorDataToJSON;
 
 import java.util.HashMap;
 import java.util.TreeMap;
@@ -70,6 +69,8 @@ public class TrackingFragment extends BaseTrackingFragment {
     public static final String VIEW_ID = "VIEW_ID";
     private static final String BROKER_URL = "tcp://mqtt.monashhumanpower.org:1883";
     private MqttHandler mqttHandler;
+    private SensorDataToJSON sensorDataToJSON;
+
     private static final String CLIENT_ID = "sensors_tracking_fragment";
     private static final boolean DEBUG = TrainingApplication.DEBUG && false;
     private static final String MODE = "MODE";
@@ -457,6 +458,7 @@ public class TrackingFragment extends BaseTrackingFragment {
 
 
     public void doDisplayUpdate() {
+        sensorDataToJSON = new SensorDataToJSON();
         if (DEBUG) Log.d(TAG, "doDisplayUpdate for " + mViewId);
 
         if (mMode == Mode.PREVIEW || getSensorData()) {
@@ -492,14 +494,7 @@ public class TrackingFragment extends BaseTrackingFragment {
                 if (TrainingApplication.showUnits() && getActivity() != null) {
                     String units = getString(MyHelper.getUnitsId(tvSensorType.sensorType));
                     tvSensorType.textView.setText(getString(R.string.value_unit_string_string, value, units));
-                    if (mqttHandler != null){
-                        mqttHandler.publishAsync("sensors", "sensor: " + tvSensorType.sensorType + " value: " + getString(R.string.value_unit_string_string, value, units));
-
-                    }
-                    else {
-                        // Handle the situation where mqttHandler is null
-                        Log.e(TAG, "mqttHandler is null");
-                    }
+                    sensorDataToJSON.addSensorData("" + tvSensorType.sensorType, getString(R.string.value_unit_string_string, value, units));
 
 
 
@@ -508,32 +503,73 @@ public class TrackingFragment extends BaseTrackingFragment {
                 }
             }
         }
+        JSONObject newSensorJSON = sensorDataToJSON.createJsonFromSensors();
+        Log.e(TAG, "JSONOBJECT for " + newSensorJSON.toString());
+        if (mqttHandler != null){
+
+            mqttHandler.publishAsync("/trike/data", ""+ newSensorJSON);
+
+        }
+        else {
+            // Handle the situation where mqttHandler is null
+            Log.e(TAG, "mqttHandler is null");
+        }
+
     }
 
 
-    protected boolean getSensorData() {
+
+    protected boolean getSensorData(){
         if (DEBUG) Log.d(TAG, "getSensorData for " + mViewId);
 
         if (mGetBanalServiceIf != null & mGetBanalServiceIf.getBanalServiceComm() != null) {
             // for (SensorData sensorData : mGetBanalServiceIf.getBanalServiceComm().getBestSensorData()) {
             for (FilteredSensorData filteredSensorData : mGetBanalServiceIf.getBanalServiceComm().getAllFilteredSensorData()) {
-                if (DEBUG) {
-                    Log.d(TAG, "getSensorData for " + filteredSensorData.getFilterData().getHashKey() + ": " + filteredSensorData.getStringValue());
-                }
+
+                Log.d(TAG, "getSensorData for " + filteredSensorData.getFilterData().getHashKey() + ": " + filteredSensorData.getStringValue());
+
 
                 mHashMapValues.put(filteredSensorData.getFilterData().getHashKey(), filteredSensorData.getStringValue());
+
             }
+
             return true;
         } else {
             if (DEBUG) Log.i(TAG, "no Connection to BANALService");
             return false;
         }
+
     }
 
 
 
     public enum Mode {TRACKING, PREVIEW}
+    public JSONObject createJsonFromSensors(String timeActive, String distance, String speed) throws Exception{
+        JSONObject rootObject = new JSONObject();
+        // Create the JSON array to hold the sensor data
+        JSONArray sensorsArray = new JSONArray();
+        JSONObject timeActiveSensor = new JSONObject();
+        timeActiveSensor.put("type", "time active");
+        timeActiveSensor.put("value", timeActive);
+        sensorsArray.put(timeActiveSensor);
 
+        // Add the "distance" sensor data
+        JSONObject distanceSensor = new JSONObject();
+        distanceSensor.put("type", "distance");
+        distanceSensor.put("value", distance);
+        sensorsArray.put(distanceSensor);
+
+        // Add the "speed" sensor data
+        JSONObject speedSensor = new JSONObject();
+        speedSensor.put("type", "speed");
+        speedSensor.put("value", speed);
+        sensorsArray.put(speedSensor);
+
+        // Add the sensors array to the root object
+        rootObject.put("sensors", sensorsArray);
+
+        return rootObject;
+    }
     protected class TvSensorType {
         protected TextView textView;
         protected SensorType sensorType;
