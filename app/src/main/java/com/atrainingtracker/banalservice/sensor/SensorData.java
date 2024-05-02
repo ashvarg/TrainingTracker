@@ -19,6 +19,8 @@
 package com.atrainingtracker.banalservice.sensor;
 
 import com.atrainingtracker.banalservice.BANALService;
+import com.atrainingtracker.banalservice.filters.FilterData;
+import com.atrainingtracker.banalservice.filters.FilterType;
 
 // public class SensorData implements Parcelable
 public class SensorData<T> {
@@ -53,5 +55,10 @@ public class SensorData<T> {
     public String getDeviceName() {
         return mDeviceName;
     }
+
+    public FilterData getFilterData() {
+        return new FilterData(getDeviceName(), getSensorType(), FilterType.INSTANTANEOUS, 1);
+    }
+
 
 }
