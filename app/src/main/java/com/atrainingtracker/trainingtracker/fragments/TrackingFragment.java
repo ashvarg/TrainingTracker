@@ -529,12 +529,12 @@ public class TrackingFragment extends BaseTrackingFragment {
 
 
                 mHashMapValues.put(filteredSensorData.getFilterData().getHashKey(), filteredSensorData.getStringValue());
-                sensorDataList = mGetBanalServiceIf.getBanalServiceComm().getAllSensorData();
-                SensorData sensor = sensorDataList.get(7);
-                SensorData sensor2 = sensorDataList.get(8);
+                // sensorDataList = mGetBanalServiceIf.getBanalServiceComm().getAllSensorData();
+                // SensorData sensor = sensorDataList.get(7);
+                // SensorData sensor2 = sensorDataList.get(8);
 
-                mHashMapValues.put(sensor.getFilterData().getHashKey(), sensor.getStringValue());
-                mHashMapValues.put(sensor2.getFilterData().getHashKey(), sensor.getStringValue());
+                /// mHashMapValues.put(sensor.getFilterData().getHashKey(), sensor.getStringValue());
+                // mHashMapValues.put(sensor2.getFilterData().getHashKey(), sensor.getStringValue());
                 Log.d(TAG, "HASHMAP VALUES " + mHashMapValues);
 
 
